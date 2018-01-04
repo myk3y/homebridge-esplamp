@@ -5,31 +5,31 @@ module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
 
-    homebridge.registerAccessory("homebridge-esplock", "EspLock", LockAccessory);
+    homebridge.registerAccessory("homebridge-esplamp", "EspLamp", LampAccessory);
 }
 
-function LockAccessory(log, config) {
+function LampAccessory(log, config) {
     this.log = log;
     this.name = config["name"];
     this.url = config["url"];
-    this.lockID = config["lock-id"];
+    this.lampID = config["lamp-id"];
     this.username = config["username"];
     this.password = config["password"];
 
-    this.lockservice = new Service.LockMechanism(this.name);
+    this.lampservice = new Service.LampMechanism(this.name);
 
-    this.lockservice
-        .getCharacteristic(Characteristic.LockCurrentState)
+    this.lampservice
+        .getCharacteristic(Characteristic.LampCurrentState)
         .on('get', this.getState.bind(this));
 
-    this.lockservice
-        .getCharacteristic(Characteristic.LockTargetState)
+    this.lampservice
+        .getCharacteristic(Characteristic.LampTargetState)
         .on('get', this.getState.bind(this))
         .on('set', this.setState.bind(this));
 
-    this.battservice = new Service.BatteryService(this.name);
+    //this.battservice = new Service.BatteryService(this.name);
 
-    this.battservice
+   /* this.battservice
         .getCharacteristic(Characteristic.BatteryLevel)
         .on('get', this.getBattery.bind(this));
 
@@ -39,23 +39,23 @@ function LockAccessory(log, config) {
 
     this.battservice
         .getCharacteristic(Characteristic.StatusLowBattery)
-        .on('get', this.getLowBatt.bind(this));
+        .on('get', this.getLowBatt.bind(this));*/
 
 }
 
-LockAccessory.prototype.getState = function(callback) {
+LampAccessory.prototype.getState = function(callback) {
     this.log("Getting current state...");
 
     request.get({
         url: this.url,
-        qs: { username: this.username, password: this.password, lockid: this.lockID }
+        qs: { username: this.username, password: this.password, lampid: this.lampID }
     }, function(err, response, body) {
         if (!err && response.statusCode == 200) {
             var json = JSON.parse(body);
-            var state = json.state; // "locked" or "unlocked"
-            this.log("Lock state is %s", state);
-            var locked = state == "locked";
-            callback(null, locked); // success
+            var state = json.state; // "on" or "off"
+            this.log("Lamp state is %s", state);
+            var on = state == "on";
+            callback(null, on); // success
         } else {
             if (response && response.statusCode) {
                 this.log("Error getting state (status code %s): %s", response.statusCode, err);
@@ -65,18 +65,18 @@ LockAccessory.prototype.getState = function(callback) {
     }.bind(this));
 }
 
-LockAccessory.prototype.getBattery = function(callback) {
+/*LampAccessory.prototype.getBattery = function(callback) {
     this.log("Getting current battery...");
 
     request.get({
         url: this.url,
-        qs: { username: this.username, password: this.password, lockid: this.lockID }
+        qs: { username: this.username, password: this.password, lampid: this.lampID }
     }, function(err, response, body) {
 
         if (!err && response.statusCode == 200) {
             var json = JSON.parse(body);
             var batt = json.battery;
-            this.log("Lock battery is %s", batt);
+            this.log("Lamp battery is %s", batt);
             callback(null, batt); // success
         }
         else {
@@ -88,22 +88,22 @@ LockAccessory.prototype.getBattery = function(callback) {
     }.bind(this));
 }
 
-LockAccessory.prototype.getCharging = function(callback) {
+LampAccessory.prototype.getCharging = function(callback) {
     callback(null, Characteristic.ChargingState.NOT_CHARGING);
 }
 
-LockAccessory.prototype.getLowBatt = function(callback) {
+LampAccessory.prototype.getLowBatt = function(callback) {
     this.log("Getting current battery...");
 
     request.get({
         url: this.url,
-        qs: { username: this.username, password: this.password, lockid: this.lockID }
+        qs: { username: this.username, password: this.password, lampid: this.lampID }
     }, function(err, response, body) {
 
         if (!err && response.statusCode == 200) {
             var json = JSON.parse(body);
             var batt = json.battery;
-            this.log("Lock battery is %s", batt);
+            this.log("Lamp battery is %s", batt);
             var low = (batt > 20) ? Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL : Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW;
             callback(null, low); // success
         }
@@ -115,26 +115,26 @@ LockAccessory.prototype.getLowBatt = function(callback) {
         }
     }.bind(this));
 }
+*/
+LampAccessory.prototype.setState = function(state, callback) {
+    var lampState = (state == Characteristic.LampTargetState.SECURED) ? "on" : "off";
 
-LockAccessory.prototype.setState = function(state, callback) {
-    var lockState = (state == Characteristic.LockTargetState.SECURED) ? "locked" : "unlocked";
-
-    this.log("Set state to %s", lockState);
+    this.log("Set state to %s", lampState);
 
     request.post({
         url: this.url,
-        form: { username: this.username, password: this.password, lockid: this.lockID, state: lockState }
+        form: { username: this.username, password: this.password, lampid: this.lampID, state: lampState }
     }, function(err, response, body) {
 
         if (!err && response.statusCode == 200) {
             this.log("State change complete.");
 
             // we succeeded, so update the "current" state as well
-            var currentState = (state == Characteristic.LockTargetState.SECURED) ?
-                Characteristic.LockCurrentState.SECURED : Characteristic.LockCurrentState.UNSECURED;
+            var currentState = (state == Characteristic.LampTargetState.SECURED) ?
+                Characteristic.LampCurrentState.SECURED : Characteristic.LampCurrentState.UNSECURED;
 
-            this.lockservice
-                .setCharacteristic(Characteristic.LockCurrentState, currentState);
+            this.lampservice
+                .setCharacteristic(Characteristic.LampCurrentState, currentState);
 
             var json = JSON.parse(body);
             var batt = json.battery;
@@ -146,19 +146,19 @@ LockAccessory.prototype.setState = function(state, callback) {
 
             var self = this;
             setTimeout(function() {
-                if (currentState == Characteristic.LockTargetState.UNSECURED) { 
-                    self.lockservice
-                        .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+                if (currentState == Characteristic.LampTargetState.UNSECURED) { 
+                    self.lampservice
+                        .setCharacteristic(Characteristic.LampTargetState, Characteristic.LampTargetState.SECURED);
                 }
             }, 5000);
         }
         else {
-            this.log("Error '%s' setting lock state. Response: %s", err, body);
-            callback(err || new Error("Error setting lock state."));
+            this.log("Error '%s' setting lamp state. Response: %s", err, body);
+            callback(err || new Error("Error setting lamp state."));
         }
     }.bind(this));
 },
 
-LockAccessory.prototype.getServices = function() {
-    return [this.lockservice, this.battservice];
+LampAccessory.prototype.getServices = function() {
+    return [this.lampservice, this.battservice];
 }
