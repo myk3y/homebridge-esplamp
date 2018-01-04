@@ -160,5 +160,5 @@ LampAccessory.prototype.setState = function(state, callback) {
 },
 
 LampAccessory.prototype.getServices = function() {
-    return [this.lampservice, this.battservice];
+    return [this.lampservice/*, this.battservice*/];
 }
