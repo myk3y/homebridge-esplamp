@@ -1,16 +1,16 @@
 {
-    "name": "homebridge-esplock",
-    "version": "1.0.4",
-    "description": "HTTP controlled ESP8266 lock accessory plugin for Homebridge",
+    "name": "homebridge-esplamp",
+    "version": "1.0.0",
+    "description": "HTTP controlled ESP8266 lamp accessory plugin for Homebridge",
     "author": {
-        "name": "yancan#aprbrother.com"
+        "name": "Mike Thonrbury"
     },
     "keywords": [
         "homebridge-plugin"
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/volca/homebridge-esplock"
+        "url": "https://github.com/myk3y/homebridge-esplamp"
     },
     "engines": {
         "node": ">=0.12.0",
